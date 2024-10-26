@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  name         String
+  email        String     @unique
+  userType     UserType
+  groups       Group[]    @relation("User Groups") // Updated relation name
+  reviews      Review[]
+  feedbacks    Feedback[]
+  toDoList     ToDo?
+  userNotes    UserNote[] @relation("User Notes") // This indicates one user can have many notes
+}
+
+model Group {
+  id                    Int                 @id @default(autoincrement())
+  name                  String
+  users                 User[]              @relation("User Groups") // Keep the same relation name
+  subjects              GroupSubject[]      
+  groupAnnouncements     GroupAnnouncement[] 
+  groupNotes           GroupNote[]         
+  syllabi              Syllabus[]          
+  assignments          Assignment[] // Correctly added relation
+}
+
+model Subject {
+  id           Int            @id @default(autoincrement())
+  name         String
+  faculties    Faculty[]      
+  groups       GroupSubject[] 
+  syllabi      Syllabus[]     
+  groupNotes   GroupNote[]    
+  userNotes    UserNote[]     
+  modules      Module[]       
+}
+
+model Module {
+  id          Int      @id @default(autoincrement())
+  title       String   
+  subjectId   Int      
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  links       String?  
+}
+
+model GroupSubject {
+  groupId      Int
+  group        Group          @relation(fields: [groupId], references: [id])
+  subjectId    Int
+  subject      Subject        @relation(fields: [subjectId], references: [id])
+
+  @@id([groupId, subjectId])  
+}
+
+model Faculty {
+  id           Int        @id @default(autoincrement())
+  name         String
+  subjects     Subject[]  
+  assignments  Assignment[] 
+  notes        GroupNote[] 
+  userNotes    UserNote[] 
+  reviews      Review[]   
+}
+
+model Assignment {
+  id           Int        @id @default(autoincrement())
+  title        String
+  pdfPath      String     
+  facultyId    Int?
+  faculty      Faculty?   @relation(fields: [facultyId], references: [id])
+  groupId      Int?
+  group        Group?     @relation(fields: [groupId], references: [id])
+}
+
+model PreviousYear {
+  id          Int     @id @default(autoincrement())
+  year        Int
+  pdfPath     String
+  slotName    String  
+  name        String  
+  subjectName String  
+}
+
+model GroupNote {
+  id         Int        @id @default(autoincrement())
+  name       String     
+  content    String
+  facultyId  Int
+  faculty    Faculty    @relation(fields: [facultyId], references: [id])
+  groupId    Int        
+  group      Group      @relation(fields: [groupId], references: [id])
+  subjectId  Int
+  subject    Subject    @relation(fields: [subjectId], references: [id]) 
+}
+
+model UserNote {
+  id         Int        @id @default(autoincrement())
+  name       String    
+  content    String
+  facultyId  Int
+  faculty    Faculty    @relation(fields: [facultyId], references: [id])
+  userId     Int        @unique // Marked as unique for one-to-one relationship
+  user       User       @relation("User Notes", fields: [userId], references: [id]) // Use a name for the relation
+  subjectId  Int
+  subject    Subject    @relation(fields: [subjectId], references: [id])
+}
+
+
+model GroupAnnouncement {
+  id        Int       @id @default(autoincrement())
+  message   String
+  groupId   Int       
+  group     Group     @relation(fields: [groupId], references: [id])
+}
+
+model GlobalAnnouncement {
+  id        Int       @id @default(autoincrement())
+  message   String  
+}
+
+model Syllabus {
+  id           Int        @id @default(autoincrement())
+  path         String
+  groupId      Int        
+  subjectId    Int       
+  group        Group      @relation(fields: [groupId], references: [id])
+  subject      Subject    @relation(fields: [subjectId], references: [id])
+}
+
+
+model Feedback {
+  id           Int        @id @default(autoincrement())
+  content      String
+  userId       Int       @unique // Marked as unique for one-to-one relationship
+  user         User       @relation(fields: [userId], references: [id])
+}
+
+model Review {
+  id           Int        @id @default(autoincrement())
+  content      String
+  facultyId    Int
+  faculty      Faculty    @relation(fields: [facultyId], references: [id])
+  userId       Int       @unique // Marked as unique for one-to-one relationship
+  user         User       @relation(fields: [userId], references: [id]) 
+}
+
+model ToDo {
+  id           Int        @id @default(autoincrement())
+  task         String[] 
+  userId       Int       @unique // Marked as unique for one-to-one relationship
+  user         User       @relation(fields: [userId], references: [id]) 
+}
+
+enum UserType {
+  INDIVIDUAL
+  GROUPED
+}
